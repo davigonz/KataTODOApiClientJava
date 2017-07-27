@@ -16,40 +16,86 @@
 package com.karumi.todoapiclient;
 
 import com.karumi.todoapiclient.dto.TaskDto;
-import java.util.List;
+import com.karumi.todoapiclient.exception.ItemNotFoundException;
+import com.karumi.todoapiclient.exception.TodoApiClientException;
+
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
+
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 public class TodoApiClientTest extends MockWebServerTest {
 
-  private TodoApiClient apiClient;
+    private TodoApiClient apiClient;
 
-  @Before public void setUp() throws Exception {
-    super.setUp();
-    String mockWebServerEndpoint = getBaseEndpoint();
-    apiClient = new TodoApiClient(mockWebServerEndpoint);
-  }
+    @Before
+    public void setUp() throws Exception {
+        super.setUp();
+        String mockWebServerEndpoint = getBaseEndpoint();
+        apiClient = new TodoApiClient(mockWebServerEndpoint);
+    }
 
-  @Test public void shouldReturnTheTasksObtainedFromTODOsPath() throws Exception {
+    // GET /todos
 
-      // Set up environment before testing
-      enqueueMockResponse(200, "getTasksResponse.json");
+    @Test
+    public void parsesTasksProperlyWhenGettingAllTheTasks() throws Exception {
 
-      List<TaskDto> tasksDTO = apiClient.getAllTasks();
+        // Set up environment before testing
+        enqueueMockResponse(200, "getTasksResponse.json");
 
-      assertEquals(200, tasksDTO.size());
+        List<TaskDto> tasksDTO = apiClient.getAllTasks();
 
-      assertTaskContainsExpectedValues(tasksDTO.get(0));
-  }
+        assertEquals(200, tasksDTO.size());
+        assertTaskContainsExpectedValues(tasksDTO.get(0));
+    }
 
-  private void assertTaskContainsExpectedValues(TaskDto task) {
-    assertEquals(task.getId(), "1");
-    assertEquals(task.getUserId(), "1");
-    assertEquals(task.getTitle(), "delectus aut autem");
-    assertFalse(task.isFinished());
-  }
+    @Test
+    public void sendsGetAllTaskRequestToTheCorrectEndpoint() throws Exception {
+
+        enqueueMockResponse();
+
+        apiClient.getAllTasks();
+
+        assertGetRequestSentTo("/todos");
+    }
+
+    @Test(expected = TodoApiClientException.class)
+    public void receivesProperExceptionWhenResponseCodeIs418() throws Exception {
+
+        // Set up environment before testing
+        enqueueMockResponse(418);
+
+        apiClient.getAllTasks();
+    }
+
+    // GET /todos/(TASK_ID)
+
+    @Test
+    public void sendsGetSpecificTaskRequestToTheCorrectEndpoint() throws Exception {
+
+        enqueueMockResponse();
+
+        apiClient.getTaskById("1");
+
+        assertGetRequestSentTo("/todos/1");
+    }
+
+    @Test (expected = ItemNotFoundException.class)
+    public void receivesProperExceptionWhenResponseCodeIs404() throws Exception {
+
+        enqueueMockResponse(404);
+
+        apiClient.getTaskById("2");
+    }
+
+
+    private void assertTaskContainsExpectedValues(TaskDto task) {
+        assertEquals(task.getId(), "1");
+        assertEquals(task.getUserId(), "1");
+        assertEquals(task.getTitle(), "delectus aut autem");
+        assertFalse(task.isFinished());
+    }
 }
