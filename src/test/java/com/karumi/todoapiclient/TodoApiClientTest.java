@@ -19,6 +19,7 @@ import com.karumi.todoapiclient.dto.TaskDto;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -33,29 +34,16 @@ public class TodoApiClientTest extends MockWebServerTest {
     apiClient = new TodoApiClient(mockWebServerEndpoint);
   }
 
-  @Test public void sendsAcceptAndContentTypeHeaders() throws Exception {
-    enqueueMockResponse();
+  @Test public void shouldReturnTheTasksObtainedFromTODOsPath() throws Exception {
 
-    apiClient.getAllTasks();
+      // Set up environment before testing
+      enqueueMockResponse(200, "getTasksResponse.json");
 
-    assertRequestContainsHeader("Accept", "application/json");
-  }
+      List<TaskDto> tasksDTO = apiClient.getAllTasks();
 
-  @Test public void sendsGetAllTaskRequestToTheCorrectEndpoint() throws Exception {
-    enqueueMockResponse();
+      assertEquals(200, tasksDTO.size());
 
-    apiClient.getAllTasks();
-
-    assertGetRequestSentTo("/todos");
-  }
-
-  @Test public void parsesTasksProperlyGettingAllTheTasks() throws Exception {
-    enqueueMockResponse(200, "getTasksResponse.json");
-
-    List<TaskDto> tasks = apiClient.getAllTasks();
-
-    assertEquals(tasks.size(), 200);
-    assertTaskContainsExpectedValues(tasks.get(0));
+      assertTaskContainsExpectedValues(tasksDTO.get(0));
   }
 
   private void assertTaskContainsExpectedValues(TaskDto task) {
