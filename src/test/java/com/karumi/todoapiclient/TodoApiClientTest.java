@@ -17,7 +17,6 @@ package com.karumi.todoapiclient;
 
 import com.karumi.todoapiclient.dto.TaskDto;
 import com.karumi.todoapiclient.exception.ItemNotFoundException;
-import com.karumi.todoapiclient.exception.TodoApiClientException;
 import com.karumi.todoapiclient.exception.UnknownErrorException;
 
 import org.junit.Before;
@@ -31,6 +30,7 @@ import static org.junit.Assert.assertFalse;
 public class TodoApiClientTest extends MockWebServerTest {
 
     private TodoApiClient apiClient;
+    private TaskDto TASK = new TaskDto("1", "2", "Finish this kata", false);
 
     @Before
     public void setUp() throws Exception {
@@ -63,8 +63,8 @@ public class TodoApiClientTest extends MockWebServerTest {
         assertGetRequestSentTo("/todos");
     }
 
-    @Test(expected = TodoApiClientException.class)
-    public void throwProperExceptionWhenResponseCodeIs418() throws Exception {
+    @Test(expected = UnknownErrorException.class)
+    public void throwProperExceptionWhenResponseCodeIs418WhenGettingAllTasks() throws Exception {
 
         enqueueMockResponse(418);
 
@@ -116,7 +116,7 @@ public class TodoApiClientTest extends MockWebServerTest {
 
         enqueueMockResponse(201);
 
-        apiClient.addTask(new TaskDto("101", "101", "Task 101", false));
+        apiClient.addTask(TASK);
 
         assertPostRequestSentTo("/todos");
     }
@@ -126,7 +126,7 @@ public class TodoApiClientTest extends MockWebServerTest {
 
         enqueueMockResponse();
 
-        apiClient.addTask(new TaskDto("1", "2", "Finish this kata", false));
+        apiClient.addTask(TASK);
 
         // See all the request sent
         assertRequestBodyEquals("addTaskRequest.json");
@@ -135,11 +135,77 @@ public class TodoApiClientTest extends MockWebServerTest {
     @Test
     public void receiveProperBodyWhenAddingANewTask() throws Exception {
 
-        enqueueMockResponse(201, "addTaskRequest.json");
+        enqueueMockResponse(201, "addTaskResponse.json");
 
-        TaskDto taskDto = apiClient.addTask(new TaskDto("1", "2", "Finish this kata", false));
+        TaskDto taskDto = apiClient.addTask(TASK);
 
         assertTaskContainsExpectedValues(taskDto);
+    }
+
+    @Test (expected = UnknownErrorException.class)
+    public void throwProperExceptionWhenResponseCodeIs418WhenAddingATask() throws Exception {
+
+        enqueueMockResponse(418);
+
+        apiClient.addTask(TASK);
+    }
+
+    @Test (expected = UnknownErrorException.class)
+    public void throwProperExceptionWhenResponseCodeIs500WhenAddingATask() throws Exception {
+
+        enqueueMockResponse(500);
+
+        apiClient.addTask(TASK);
+    }
+
+    // UPDATE
+
+    @Test
+    public void sendsUpdateTaskRequestToTheCorrectEndpoint() throws Exception {
+
+        enqueueMockResponse(200);
+
+        apiClient.updateTaskById(TASK);
+
+        assertPutRequestSentTo("/todos/" + TASK.getId());
+    }
+
+    @Test
+    public void sendProperBodyWithDtoWhenUpdatingATask() throws Exception {
+
+        enqueueMockResponse();
+
+        apiClient.updateTaskById(TASK);
+
+        // See all the request sent
+        assertRequestBodyEquals("updateTaskRequest.json");
+    }
+
+    @Test
+    public void receiveProperBodyWhenUpdatingATask() throws Exception {
+
+        enqueueMockResponse(200, "updateTaskResponse.json");
+
+        // NEW TASK doesn't matter, we have mocked the response just above
+        TaskDto taskDto = apiClient.updateTaskById(TASK);
+
+        assertTaskContainsExpectedValues(taskDto);
+    }
+
+    @Test (expected = UnknownErrorException.class)
+    public void throwProperExceptionWhenResponseCodeIs418WhenUpdatingATask() throws Exception {
+
+        enqueueMockResponse(418);
+
+        apiClient.updateTaskById(TASK);
+    }
+
+    @Test (expected = UnknownErrorException.class)
+    public void throwProperExceptionWhenResponseCodeIs500WhenUpdatingATask() throws Exception {
+
+        enqueueMockResponse(500);
+
+        apiClient.updateTaskById(TASK);
     }
 
     private void assertTaskContainsExpectedValues(TaskDto task) {
