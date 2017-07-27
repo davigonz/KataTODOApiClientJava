@@ -18,6 +18,7 @@ package com.karumi.todoapiclient;
 import com.karumi.todoapiclient.dto.TaskDto;
 import com.karumi.todoapiclient.exception.ItemNotFoundException;
 import com.karumi.todoapiclient.exception.TodoApiClientException;
+import com.karumi.todoapiclient.exception.UnknownErrorException;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -43,7 +44,7 @@ public class TodoApiClientTest extends MockWebServerTest {
     @Test
     public void parsesTasksProperlyWhenGettingAllTheTasks() throws Exception {
 
-        // Set up environment before testing
+        // Mock up environment before testing
         enqueueMockResponse(200, "getTasksResponse.json");
 
         List<TaskDto> tasksDTO = apiClient.getAllTasks();
@@ -63,9 +64,8 @@ public class TodoApiClientTest extends MockWebServerTest {
     }
 
     @Test(expected = TodoApiClientException.class)
-    public void receivesProperExceptionWhenResponseCodeIs418() throws Exception {
+    public void throwProperExceptionWhenResponseCodeIs418() throws Exception {
 
-        // Set up environment before testing
         enqueueMockResponse(418);
 
         apiClient.getAllTasks();
@@ -84,13 +84,30 @@ public class TodoApiClientTest extends MockWebServerTest {
     }
 
     @Test (expected = ItemNotFoundException.class)
-    public void receivesProperExceptionWhenResponseCodeIs404() throws Exception {
+    public void throwProperExceptionWhenResponseCodeIs404() throws Exception {
 
         enqueueMockResponse(404);
 
         apiClient.getTaskById("2");
     }
 
+    @Test
+    public void parsesTaskProperlyWhenGettingASpecificTask() throws Exception {
+
+        enqueueMockResponse(200, "getTaskByIdResponse.json");
+
+        TaskDto taskDto = apiClient.getTaskById("1");
+
+        assertTaskContainsExpectedValues(taskDto);
+    }
+
+    @Test (expected = UnknownErrorException.class)
+    public void throwProperExceptionWhenResponseCodeIs500() throws Exception {
+
+        enqueueMockResponse(500);
+
+        apiClient.getTaskById("2");
+    }
 
     private void assertTaskContainsExpectedValues(TaskDto task) {
         assertEquals(task.getId(), "1");
